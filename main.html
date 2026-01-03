@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VectorMind 2.0</title>
+    <style>
+        /* --- ESTILOS GERAIS --- */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); color: #fff; min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; width: 100%; }
+        
+        /* Telas */
+        .screen { display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 90vh; opacity: 0; animation: fadeIn 0.8s ease forwards; }
+        @keyframes fadeIn { to { opacity: 1; } }
+        
+        /* Títulos */
+        .title { font-size: 3.5rem; margin-bottom: 10px; text-align: center; background: linear-gradient(90deg, #ff7e5f, #feb47b); -webkit-background-clip: text; background-clip: text; color: transparent; text-shadow: 0 0 20px rgba(255, 126, 95, 0.3); }
+        .subtitle { font-size: 1.2rem; margin-bottom: 40px; text-align: center; color: #a0a0c0; max-width: 600px; }
+        
+        /* Cards de Nível */
+        .levels { display: flex; flex-wrap: wrap; justify-content: center; gap: 25px; margin-top: 20px; }
+        .level-card { background: rgba(255, 255, 255, 0.08); border-radius: 16px; padding: 30px; width: 280px; text-align: center; backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); transition: all 0.3s ease; cursor: pointer; }
+        .level-card:hover { transform: translateY(-10px); background: rgba(255, 255, 255, 0.12); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); }
+        .level-card h3 { font-size: 1.8rem; margin-bottom: 15px; }
+        .level-card.easy h3 { color: #4ade80; } .level-card.medium h3 { color: #fbbf24; } .level-card.hard h3 { color: #f87171; }
+        .level-stats { display: flex; justify-content: space-between; margin-top: 15px; font-size: 0.9rem; color: #8080a0; }
+        
+        /* Botões */
+        .btn { background: linear-gradient(90deg, #6366f1, #8b5cf6); color: white; border: none; padding: 12px 30px; border-radius: 50px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.3s ease; margin-top: 15px; }
+        .btn:hover { transform: scale(1.05); box-shadow: 0 5px 15px rgba(99, 102, 241, 0.4); }
+        .btn-secondary { background: rgba(255, 255, 255, 0.1); color: white; border: 1px solid rgba(255,255,255,0.2); }
+        
+        /* Botão Voltar */
+        .btn-back-home {
+            background: none; border: none; color: #a0a0c0; 
+            font-size: 1.1rem; cursor: pointer; margin-bottom: 15px; 
+            display: flex; align-items: center; gap: 8px; align-self: flex-start;
+            transition: color 0.3s;
+        }
+        .btn-back-home:hover { color: #fff; text-decoration: underline; }
+
+        /* Layout do Jogo */
+        .game-container { display: none; grid-template-columns: 1fr 350px; gap: 20px; height: 90vh; padding: 20px; position: relative; }
+        .left-column { display: flex; flex-direction: column; height: 100%; position: relative; }
+        .right-column { display: flex; flex-direction: column; gap: 20px; }
+        
+        .game-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+        .game-info { display: flex; align-items: center; }
+        .game-info span { background: rgba(255, 255, 255, 0.1); padding: 8px 15px; border-radius: 8px; margin-left: 10px; font-family: monospace; font-size: 1.1rem; min-width: 100px; text-align: center; }
+        
+        .canvas-container { flex: 1; position: relative; background: rgba(10, 10, 20, 0.8); border-radius: 12px; overflow: hidden; border: 2px solid rgba(255, 255, 255, 0.1); box-shadow: inset 0 0 50px rgba(0,0,0,0.5); }
+        #game-canvas { display: block; width: 100%; height: 100%; cursor: crosshair; }
+        .game-footer { margin-top: 15px; color: #a0a0c0; font-size: 0.9rem; display: flex; align-items: center; gap: 10px; }
+        
+        /* OVERLAY DO MONITOR RESULTANTE */
+        .canvas-monitor-overlay {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255, 255, 255, 0.6);
+            color: #ef4444; 
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 1rem;
+            font-weight: bold;
+            display: none; 
+            pointer-events: none; 
+            border: 1px solid rgba(239, 68, 68, 0.5);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            z-index: 10;
+        }
+
+        /* Painéis Laterais */
+        .panel { background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1); }
+        .vector-list { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; overflow-y: auto; max-height: 400px; }
+        .vector-item { background: rgba(0, 0, 0, 0.2); padding: 10px; border-radius: 6px; border-left: 4px solid #fff; font-size: 0.85rem; font-family: monospace; line-height: 1.4; }
+        
+        .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .btn-control { background: rgba(255, 255, 255, 0.1); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; transition: 0.2s; text-align: center; }
+        .btn-control:hover { background: rgba(255, 255, 255, 0.2); }
+        
+        /* ESTILO PARA BOTÃO DESABILITADO (APAGADINHO) */
+        .btn-control.disabled { 
+            opacity: 0.3; 
+            cursor: not-allowed; 
+            filter: grayscale(1);
+            pointer-events: none;
+        }
+
+        .full-width { grid-column: span 2; }
+        .selected-info { text-align: center; padding: 10px; color: #feb47b; font-weight: bold; min-height: 40px; grid-column: span 2; }
+
+        /* Context Menu & Modals */
+        .context-menu { display: none; position: absolute; background: #2a2a40; border: 1px solid #6366f1; border-radius: 8px; z-index: 2000; box-shadow: 0 5px 15px rgba(0,0,0,0.5); padding: 5px 0; min-width: 160px; }
+        .menu-item { padding: 10px 20px; cursor: pointer; color: #fff; font-size: 0.9rem; display: flex; align-items: center; gap: 10px; }
+        .menu-item:hover { background: rgba(99, 102, 241, 0.3); }
+
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 3000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
+        .modal-content { background: #1f1f35; padding: 30px; border-radius: 16px; width: 90%; max-width: 600px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 0 30px rgba(99,102,241,0.2); max-height: 80vh; overflow-y: auto; position: relative; }
+        .close-modal { position: absolute; top: 15px; right: 20px; font-size: 1.5rem; cursor: pointer; color: #aaa; background: none; border: none; }
+        
+        /* Ranking */
+        .ranking-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .ranking-table th, .ranking-table td { padding: 12px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .ranking-table th { color: #feb47b; }
+        .rank-1 { color: #fbbf24; font-weight: bold; } 
+        .rank-2 { color: #94a3b8; font-weight: bold; }
+        .rank-3 { color: #b45309; font-weight: bold; }
+        .medal { font-size: 1.2rem; margin-right: 5px; }
+
+        .feedback-popup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 30px; border-radius: 16px; text-align: center; z-index: 4000; display: none; border: 2px solid; background: rgba(20, 20, 35, 0.95); box-shadow: 0 0 50px rgba(0,0,0,0.5); min-width: 300px; }
+        .feedback-popup.correct { border-color: #10b981; } .feedback-popup.incorrect { border-color: #ef4444; }
+        
+        .result-box { background: rgba(255,255,255,0.05); padding: 30px; border-radius: 16px; text-align: center; width: 100%; max-width: 500px; }
+        .score-display { font-size: 3rem; font-weight: bold; background: linear-gradient(90deg, #ff7e5f, #feb47b); -webkit-background-clip: text; background-clip: text; color: transparent; margin: 10px 0; }
+        .input-name { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); padding: 12px; border-radius: 8px; color: white; width: 100%; font-size: 1.1rem; margin: 15px 0; text-align: center; }
+
+        /* Estilo do Tutorial */
+        .tutorial-step { margin-bottom: 25px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; }
+        .tutorial-step:last-child { border-bottom: none; }
+        .tutorial-step h4 { color: #feb47b; margin-bottom: 10px; font-size: 1.2rem; display: flex; align-items: center; gap: 8px; }
+        .tutorial-step p { color: #d0d0e0; line-height: 1.6; margin-bottom: 8px; }
+        .tutorial-tip { background: rgba(99, 102, 241, 0.15); padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 0.9rem; border-left: 3px solid #6366f1; }
+        .key-term { color: #fff; font-weight: bold; background: rgba(255,255,255,0.1); padding: 0 5px; border-radius: 4px; }
+
+        /* BOTÃO FLUTUANTE DE AJUDA IN-GAME */
+        .btn-floating-help {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+            font-size: 2rem;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.4);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+        .btn-floating-help:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.6);
+            background: linear-gradient(135deg, #8b5cf6, #d946ef);
+        }
+
+        @media (max-width: 1024px) { .game-container { grid-template-columns: 1fr; height: auto; } }
+    </style>
+</head>
+<body>
+
+    <div id="context-menu" class="context-menu">
+        <div class="menu-item" id="ctx-invert"><span>🔄</span> Inverter Sentido</div>
+        <div class="menu-item" id="ctx-delete-line"><span>❌</span> Excluir Linha</div>
+    </div>
+
+    <div class="container">
+        <div id="start-screen" class="screen">
+            <h1 class="title">VectorMind</h1>
+            <p class="subtitle">Domine a soma de vetores. Arraste, conecte e calcule.</p>
+            
+            <div class="levels">
+                <div class="level-card easy">
+                    <h3>Fácil</h3>
+                    <p>Iniciante. 2 vetores.</p>
+                    <div class="level-stats"><span>5 questões</span></div>
+                    <button class="btn start-btn" data-level="easy">Jogar</button>
+                </div>
+                <div class="level-card medium">
+                    <h3>Médio</h3>
+                    <p>Desafio. 3 vetores + Tempo.</p>
+                    <div class="level-stats"><span>7 questões</span></div>
+                    <button class="btn start-btn" data-level="medium">Jogar</button>
+                </div>
+                <div class="level-card hard">
+                    <h3>Difícil</h3>
+                    <p>Mestre. Até 5 vetores.</p>
+                    <div class="level-stats"><span>10 questões</span></div>
+                    <button class="btn start-btn" data-level="hard">Jogar</button>
+                </div>
+            </div>
+
+            <div style="margin-top: 40px; display: flex; gap: 15px;">
+                <button class="btn btn-secondary" onclick="showRanking()">🏆 Ranking</button>
+                <button class="btn btn-secondary" onclick="showTutorial()">❓ Como Jogar</button>
+            </div>
+        </div>
+    </div>
+
+    <button class="btn-floating-help" id="ingame-help-btn" onclick="showTutorial()" style="display: none;">?</button>
+
+    <div id="game-screen" class="game-container">
+        <div class="left-column">
+            <button class="btn-back-home" onclick="backToMenu()">← Menu Principal</button>
+
+            <div class="game-header">
+                <h2 style="color: #feb47b;" id="level-display">Nível: Fácil</h2>
+                <div class="game-info">
+                    <span id="question-counter">Q: 1/5</span>
+                    <span id="timer-display">00:00</span>
+                    <span id="score-display" style="color: #4ade80;">0 pts</span>
+                </div>
+            </div>
+            
+            <div class="canvas-container">
+                <canvas id="game-canvas"></canvas>
+                <div id="canvas-overlay-monitor" class="canvas-monitor-overlay">
+                    R = |0| < 0º
+                </div>
+            </div>
+            
+            <div class="game-footer">
+                <span>🖱️ Clique Duplo: Criar Resultante</span> |
+                <span>🖱️ Clique Direito: Opções</span>
+            </div>
+        </div>
+
+        <div class="right-column">
+            <div class="panel">
+                <h3 style="color:#f0f0f0; margin-bottom:10px;" id="question-text">Calcule o Resultante</h3>
+                <div id="vectors-list" class="vector-list"></div>
+            </div>
+
+            <div class="panel controls">
+                <div class="selected-info" id="selected-vector-info">Nenhum vetor selecionado</div>
+                
+                <button class="btn-control" id="btn-add-line" style="border: 1px dashed rgba(255,255,255,0.4);">
+                    📏 Add Linha
+                </button>
+                <button class="btn-control disabled" id="btn-delete-single-line" style="border: 1px dashed rgba(239, 68, 68, 0.4); color: #f87171;">
+                    🗑️ Excluir Linha
+                </button>
+
+                <button class="btn-control" id="btn-reverse">Inverter</button>
+                <button class="btn-control" id="btn-clear">Resetar</button>
+                <button class="btn full-width" id="btn-confirm" style="margin-top:0;">✅ Confirmar Resposta</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="result-screen" class="screen" style="display: none;">
+        <div class="result-box">
+            <h2 style="font-size: 2rem; color: #fff;">Desafio Concluído!</h2>
+            
+            <div class="score-display" id="final-score-display">0 pts</div>
+            <p style="color: #a0a0c0; font-size: 1.1rem; margin-bottom: 20px;" id="result-details">
+                Tempo Total: 00:00
+            </p>
+            
+            <div id="save-score-area">
+                <input type="text" id="player-name" class="input-name" placeholder="Digite seu nome para o Ranking" maxlength="15">
+                <button class="btn" onclick="saveScoreAndExit()">Salvar no Ranking</button>
+            </div>
+            
+            <div style="margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;">
+                <button class="btn btn-secondary" onclick="restartGame()">Jogar Novamente</button>
+                <button class="btn btn-secondary" onclick="backToMenu()">Menu Principal</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="ranking-modal" class="modal">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closeModal('ranking-modal')">×</button>
+            <h2 style="text-align: center; color: #feb47b; margin-bottom: 20px;">🏆 Hall da Fama</h2>
+            
+            <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 15px;">
+                <button class="btn-secondary" onclick="renderRanking('easy')" style="padding: 5px 15px; font-size: 0.8rem;">Fácil</button>
+                <button class="btn-secondary" onclick="renderRanking('medium')" style="padding: 5px 15px; font-size: 0.8rem;">Médio</button>
+                <button class="btn-secondary" onclick="renderRanking('hard')" style="padding: 5px 15px; font-size: 0.8rem;">Difícil</button>
+            </div>
+
+            <div id="ranking-list"></div>
+        </div>
+    </div>
+
+    <div id="tutorial-modal" class="modal">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closeModal('tutorial-modal')">×</button>
+            <h2 style="text-align: center; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px;">🎓 Manual do Aluno</h2>
+            
+            <div class="tutorial-step">
+                <h4>1. O Objetivo Principal 🎯</h4>
+                <p>O jogo lhe dará uma equação (ex: <span class="key-term">R = A + B</span>). Sua missão é desenhar e encontrar o vetor resultante <strong>R</strong>.</p>
+                <p>Observe a lista de vetores no painel direito e a equação no topo.</p>
+            </div>
+
+            <div class="tutorial-step">
+                <h4>2. A Regra: Ponta com Cauda 🔗</h4>
+                <p>Para somar vetores geometricamente:</p>
+                <p>1. Arraste o corpo do primeiro vetor.</p>
+                <p>2. Conecte a <strong>cauda</strong> (início) do próximo vetor na <strong>ponta</strong> (seta) do anterior.</p>
+                <p>3. Faça uma "fila" com todos os vetores da equação.</p>
+            </div>
+
+            <div class="tutorial-step">
+                <h4>3. O Vetor Resultante (A Resposta) ✅</h4>
+                <p>Depois de alinhar todos, dê um <strong>Clique Duplo</strong> no fundo preto. Um vetor vermelho (<span class="key-term">R</span>) aparecerá.</p>
+                <p>Arraste a cauda do <strong>R</strong> para o início do primeiro vetor e a ponta para o final do último vetor.</p>
+                <p><em>"O Resultante fecha o caminho, do início de tudo ao fim de tudo."</em></p>
+            </div>
+
+            <div class="tutorial-step">
+                <h4>4. Subtração e Inversão 🔄</h4>
+                <p>Se a conta for <span class="key-term">A - B</span>, significa <span class="key-term">A + (-B)</span>.</p>
+                <p>Selecione o vetor B e clique em <strong>Inverter</strong> (ou botão direito do mouse). A seta mudará de lado!</p>
+            </div>
+
+            <div class="tutorial-step">
+                <h4>5. Ferramentas de Apoio 📏</h4>
+                <p><strong>Linhas Guias:</strong> Clique em "Add Linha", digite o ângulo (ex: 45) e uma linha pontilhada aparecerá.</p>
+                <p><strong>Excluir Linha:</strong> Para apagar uma guia, clique sobre a linha pontilhada (ela ficará branca). O botão <span class="key-term">🗑️ Excluir Linha</span> acenderá. Clique nele para remover apenas aquela linha.</p>
+            </div>
+            
+            <div class="tutorial-tip">
+                <strong>💡 Dica de Ouro:</strong> Sinta o "imã"! As pontas dos vetores e os cruzamentos das linhas guias se atraem para garantir precisão perfeita.
+            </div>
+        </div>
+    </div>
+
+    <div id="feedback-popup" class="feedback-popup">
+        <h3 id="fb-title" style="font-size: 1.5rem; margin-bottom: 10px;">Correto!</h3>
+        <p id="fb-msg" style="color: #ddd;">+ Pontos</p>
+    </div>
+
+    <script>
+        // --- CONFIGURAÇÃO (QUESTÕES) ---
+        const gameConfig = {
+            easy: { min: 2, max: 2, questions: 5 },
+            medium: { min: 2, max: 3, questions: 7 },
+            hard: { min: 3, max: 5, questions: 10 }
+        };
+
+        let gameState = {
+            level: 'easy',
+            qIndex: 0,
+            correctCount: 0,
+            startTime: 0, 
+            questionStartTime: 0, 
+            accumulatedScore: 0, 
+            timerInterval: null,
+            vectors: [], 
+            helperLines: [], 
+            resultVector: null, 
+            selectedVector: null, 
+            targetResult: null, 
+            isPaused: false,
+            drag: { active: false, obj: null, type: null, offX: 0, offY: 0 }
+        };
+
+        let rankingData = { easy: [], medium: [], hard: [] };
+        
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const contextMenu = document.getElementById('context-menu');
+
+        // --- INICIALIZAÇÃO ---
+        window.onload = () => {
+            loadRanking();
+            
+            document.querySelectorAll('.start-btn').forEach(btn => {
+                btn.addEventListener('click', () => startGame(btn.dataset.level));
+            });
+
+            document.getElementById('btn-reverse').addEventListener('click', reverseSelected);
+            document.getElementById('btn-clear').addEventListener('click', resetPositions);
+            document.getElementById('btn-confirm').addEventListener('click', checkAnswer);
+            document.getElementById('btn-add-line').addEventListener('click', addHelperLine);
+            
+            // Alterado: Listener para deletar apenas a linha selecionada
+            document.getElementById('btn-delete-single-line').addEventListener('click', deleteSelectedLine);
+            
+            document.getElementById('ctx-invert').addEventListener('click', () => { reverseSelected(); hideCtx(); });
+            document.getElementById('ctx-delete-line').addEventListener('click', () => { deleteSelectedLine(); hideCtx(); });
+
+            canvas.addEventListener('mousedown', onMouseDown);
+            canvas.addEventListener('mousemove', onMouseMove);
+            canvas.addEventListener('mouseup', onMouseUp);
+            canvas.addEventListener('dblclick', onDoubleClick);
+            canvas.addEventListener('contextmenu', onContextMenu);
+            
+            window.addEventListener('resize', resizeCanvas);
+            document.addEventListener('click', (e) => {
+                if(!e.target.closest('#context-menu')) hideCtx();
+            });
+        };
+
+        function hideCtx() { contextMenu.style.display = 'none'; }
+        
+        function resizeCanvas() {
+            const container = document.querySelector('.canvas-container');
+            if (container.clientWidth > 0) {
+                canvas.width = container.clientWidth;
+                canvas.height = container.clientHeight;
+                if(gameState.vectors.length > 0 || gameState.helperLines.length > 0) draw();
+            }
+        }
+
+        // --- GAME LOGIC ---
+
+        function startGame(level) {
+            gameState.level = level;
+            gameState.qIndex = 0;
+            gameState.correctCount = 0;
+            gameState.accumulatedScore = 0;
+            
+            gameState.vectors = [];
+            gameState.helperLines = [];
+            gameState.resultVector = null;
+            
+            gameState.startTime = Date.now();
+            gameState.isPaused = false;
+
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('result-screen').style.display = 'none';
+            document.getElementById('game-screen').style.display = 'grid';
+            
+            // Mostrar o botão de ajuda in-game
+            document.getElementById('ingame-help-btn').style.display = 'flex';
+
+            document.getElementById('level-display').textContent = 'Nível: ' + getLevelName(level);
+            
+            document.getElementById('score-display').textContent = `0 pts`;
+
+            requestAnimationFrame(() => {
+                resizeCanvas();
+                setTimeout(() => {
+                    resizeCanvas();
+                    nextQuestion();
+                    startTimer();
+                }, 50);
+            });
+        }
+
+        function nextQuestion() {
+            const conf = gameConfig[gameState.level];
+            
+            if (gameState.qIndex >= conf.questions) {
+                endGame();
+                return;
+            }
+
+            gameState.qIndex++;
+            gameState.questionStartTime = Date.now(); 
+
+            document.getElementById('question-counter').textContent = `Q: ${gameState.qIndex}/${conf.questions}`;
+            
+            gameState.vectors = [];
+            gameState.helperLines = [];
+            gameState.resultVector = null;
+            gameState.selectedVector = null;
+            
+            document.getElementById('canvas-overlay-monitor').style.display = 'none';
+            updateSelectionUI();
+
+            generateVectors(conf);
+            draw();
+        }
+
+        function generateVectors(conf) {
+            const count = Math.floor(Math.random() * (conf.max - conf.min + 1)) + conf.min;
+            gameState.vectors = [];
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            
+            const colors = ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6'];
+            const labels = ['A', 'B', 'C', 'D', 'E'];
+
+            // 1. GERAÇÃO DE VETORES (Evitando colinearidade)
+            for(let i=0; i<count; i++) {
+                const mag = Math.floor(40 + Math.random() * 60);
+                
+                let angle;
+                let validAngle = false;
+                let attempts = 0;
+
+                while(!validAngle && attempts < 20) {
+                    angle = Math.random() * Math.PI * 2;
+                    validAngle = true;
+
+                    if (i > 0) {
+                        const prevVec = gameState.vectors[i-1];
+                        const prevAngle = Math.atan2(prevVec.valY, prevVec.valX);
+                        
+                        let diff = Math.abs(angle - prevAngle);
+                        while(diff > Math.PI) diff -= Math.PI*2;
+                        diff = Math.abs(diff);
+
+                        // Evitar paralelos (diferença pequena ou perto de 180)
+                        if (diff < 0.26 || diff > 2.88) {
+                            validAngle = false;
+                        }
+                    }
+                    attempts++;
+                }
+
+                const vx = Math.cos(angle) * mag;
+                const vy = Math.sin(angle) * mag;
+                const startX = centerX + (Math.random() - 0.5) * 150;
+                const startY = centerY + (Math.random() - 0.5) * 150;
+
+                gameState.vectors.push({
+                    id: i, label: labels[i], color: colors[i],
+                    valX: vx, valY: vy,
+                    startX: startX, startY: startY,
+                    endX: startX + vx, endY: startY + vy,
+                    originalValX: vx, originalValY: vy // Guardar para reset
+                });
+            }
+
+            // 2. EMBARALHAMENTO DA EQUAÇÃO
+            let indices = Array.from({length: count}, (_, i) => i);
+            indices.sort(() => Math.random() - 0.5);
+
+            let sumX = 0, sumY = 0;
+            let equationText = "";
+            let listHTML = "";
+
+            // 3. Monta HTML da Lista (Ordem Alfabética Visual)
+            gameState.vectors.forEach(vec => {
+                const angDeg = Math.round((Math.atan2(vec.valY, vec.valX) * 180 / Math.PI));
+                const compX = Math.round(vec.valX);
+                const compY = Math.round(vec.valY);
+                listHTML += `
+                    <div class="vector-item" style="border-color:${vec.color}">
+                        <strong>${vec.label}</strong> = ${Math.round(Math.hypot(vec.valX, vec.valY))}u ∠ ${angDeg}° <br>
+                        ➜ (${compX}i ${compY >= 0 ? '+' : ''}${compY}j)
+                    </div>
+                `;
+            });
+
+            // 4. Calcula Equação Baseada na Ordem Sorteada
+            indices.forEach((idx, i) => {
+                const vec = gameState.vectors[idx];
+                let isSubtraction = false;
+                
+                // O primeiro da equação costuma ser positivo, os outros random
+                if (i > 0) isSubtraction = Math.random() > 0.5;
+
+                if (isSubtraction) {
+                    sumX -= vec.valX;
+                    sumY -= vec.valY;
+                    equationText += ` - ${vec.label}`;
+                } else {
+                    sumX += vec.valX;
+                    sumY += vec.valY;
+                    equationText += (i === 0 ? "" : " + ") + vec.label;
+                }
+            });
+
+            gameState.targetResult = { x: sumX, y: sumY, mag: Math.hypot(sumX, sumY) };
+            document.getElementById('question-text').textContent = `Calcule: R = ${equationText}`;
+            document.getElementById('vectors-list').innerHTML = listHTML;
+        }
+
+        // --- FERRAMENTAS ---
+
+        function addHelperLine() {
+            const angStr = prompt("Digite o ângulo da linha guia (em graus):", "0");
+            if (angStr === null) return;
+            const angDeg = parseFloat(angStr);
+            if (isNaN(angDeg)) return;
+
+            const angRad = angDeg * Math.PI / 180;
+            
+            gameState.helperLines.push({
+                id: Date.now(),
+                x: canvas.width/2, y: canvas.height/2,
+                angle: angRad, color: 'rgba(255, 255, 255, 0.5)'
+            });
+            draw();
+        }
+
+        // MODIFICADO: Função para deletar apenas a linha selecionada
+        function deleteSelectedLine() {
+            if (gameState.selectedVector && gameState.selectedVector.angle !== undefined) {
+                // Filtra removendo apenas a linha selecionada
+                gameState.helperLines = gameState.helperLines.filter(l => l !== gameState.selectedVector);
+                gameState.selectedVector = null;
+                updateSelectionUI();
+                draw();
+            }
+        }
+
+        function updateResultantMonitor() {
+            const r = gameState.resultVector;
+            const monitor = document.getElementById('canvas-overlay-monitor');
+            if (!r) {
+                monitor.style.display = 'none';
+                return;
+            }
+            monitor.style.display = 'block';
+            
+            const dx = r.endX - r.startX;
+            const dy = r.endY - r.startY;
+            const mag = Math.hypot(dx, dy);
+            let angDeg = Math.atan2(dy, dx) * 180 / Math.PI;
+            
+            monitor.innerHTML = `R = |${Math.round(mag)}| < ${Math.round(angDeg)}º`;
+        }
+
+        // --- MOUSE INPUT ---
+
+        function onMouseDown(e) {
+            if (gameState.isPaused) return;
+            const {x, y} = getMousePos(e);
+            
+            let clicked = null;
+            let type = null;
+
+            if (gameState.resultVector) {
+                const r = gameState.resultVector;
+                if (dist(x, y, r.endX, r.endY) < 15) { clicked = r; type = 'end'; }
+                else if (dist(x, y, r.startX, r.startY) < 15) { clicked = r; type = 'start'; }
+            }
+
+            if (!clicked) {
+                if (gameState.resultVector && hitTestLine(x, y, gameState.resultVector)) {
+                    clicked = gameState.resultVector; type = 'body';
+                } else {
+                    for (let v of gameState.vectors) {
+                        if (hitTestLine(x, y, v)) { clicked = v; type = 'body'; break; }
+                    }
+                }
+            }
+
+            if (!clicked) {
+                for (let line of gameState.helperLines) {
+                    if (distToInfiniteLine(x, y, line) < 10) { clicked = line; type = 'line'; break; }
+                }
+            }
+
+            gameState.selectedVector = clicked;
+            updateSelectionUI(); // Atualiza a UI e verifica se o botão de apagar deve acender
+
+            if (clicked) {
+                gameState.drag = { active: true, obj: clicked, type: type, offX: x, offY: y };
+                if (type === 'body') {
+                    gameState.drag.dx = x - clicked.startX;
+                    gameState.drag.dy = y - clicked.startY;
+                }
+            }
+            draw();
+        }
+
+        function onMouseMove(e) {
+            if (!gameState.drag.active) return;
+            const {x, y} = getMousePos(e);
+            const obj = gameState.drag.obj;
+            const type = gameState.drag.type;
+
+            if (type === 'line') {
+                obj.x = x; obj.y = y;
+                snapLineToPoints(obj);
+            } 
+            else if (type === 'body') {
+                obj.startX = x - gameState.drag.dx;
+                obj.startY = y - gameState.drag.dy;
+                obj.endX = obj.startX + obj.valX;
+                obj.endY = obj.startY + obj.valY;
+                applyMagnet(obj, 'both');
+            } 
+            else if (type === 'end') {
+                obj.endX = x; obj.endY = y;
+                obj.valX = x - obj.startX; obj.valY = y - obj.startY;
+                applyMagnet(obj, 'end');
+            } 
+            else if (type === 'start') {
+                obj.startX = x; obj.startY = y;
+                obj.valX = obj.endX - x; obj.valY = obj.endY - y;
+                applyMagnet(obj, 'start');
+            }
+
+            if (gameState.resultVector) updateResultantMonitor();
+            draw();
+        }
+
+        function onMouseUp() { gameState.drag.active = false; }
+
+        function onDoubleClick(e) {
+            if (!gameState.resultVector) {
+                const {x, y} = getMousePos(e);
+                gameState.resultVector = {
+                    id: 'res', label: 'R', color: '#ef4444',
+                    startX: x, startY: y,
+                    endX: x + 60, endY: y,
+                    valX: 60, valY: 0
+                };
+                gameState.selectedVector = gameState.resultVector;
+                updateResultantMonitor();
+                updateSelectionUI();
+                draw();
+            }
+        }
+
+        function onContextMenu(e) {
+            e.preventDefault();
+            onMouseDown(e); 
+            gameState.drag.active = false;
+            
+            if (gameState.selectedVector) {
+                contextMenu.style.left = e.pageX + 'px';
+                contextMenu.style.top = e.pageY + 'px';
+                contextMenu.style.display = 'block';
+                const isLine = gameState.selectedVector.angle !== undefined;
+                document.getElementById('ctx-invert').style.display = isLine ? 'none' : 'block';
+                document.getElementById('ctx-delete-line').style.display = isLine ? 'block' : 'none';
+            }
+        }
+
+        // --- GEOMETRIA E IMÃ ---
+        
+        function getLineIntersections() {
+            const points = [];
+            const lines = gameState.helperLines;
+            for (let i = 0; i < lines.length; i++) {
+                for (let j = i + 1; j < lines.length; j++) {
+                    const l1 = lines[i]; const l2 = lines[j];
+                    const A1 = -Math.sin(l1.angle); const B1 = Math.cos(l1.angle); const C1 = A1 * l1.x + B1 * l1.y;
+                    const A2 = -Math.sin(l2.angle); const B2 = Math.cos(l2.angle); const C2 = A2 * l2.x + B2 * l2.y;
+                    const det = A1 * B2 - A2 * B1;
+                    if (Math.abs(det) > 0.001) { 
+                        const ix = (B2 * C1 - B1 * C2) / det; const iy = (A1 * C2 - A2 * C1) / det;
+                        points.push({x: ix, y: iy});
+                    }
+                }
+            }
+            return points;
+        }
+
+        function snapLineToPoints(line) {
+            const targets = getAllVectorPoints();
+            const SNAP_DIST = 15;
+            for (let p of targets) {
+                const d = distToInfiniteLine(p.x, p.y, line);
+                if (d < SNAP_DIST) { line.x = p.x; line.y = p.y; break; }
+            }
+        }
+
+        function applyMagnet(v, mode) {
+            const SNAP = 10; 
+            let vectorTargets = [];
+            const allVecs = [...gameState.vectors];
+            if(gameState.resultVector && gameState.resultVector !== v) allVecs.push(gameState.resultVector);
+            for (let t of allVecs) {
+                if(t === v) continue;
+                vectorTargets.push({x:t.startX, y:t.startY}); vectorTargets.push({x:t.endX, y:t.endY});
+            }
+            const intersectionTargets = getLineIntersections();
+            const allTargets = [...vectorTargets, ...intersectionTargets];
+
+            for (let p of allTargets) {
+                let snapped = false;
+                if ((mode === 'start' || mode === 'both') && dist(v.startX, v.startY, p.x, p.y) < SNAP) {
+                    const dx = p.x - v.startX; const dy = p.y - v.startY;
+                    v.startX = p.x; v.startY = p.y;
+                    if (mode === 'both') { v.endX += dx; v.endY += dy; }
+                    snapped = true;
+                }
+                if (!snapped && (mode === 'end' || mode === 'both') && dist(v.endX, v.endY, p.x, p.y) < SNAP) {
+                    const dx = p.x - v.endX; const dy = p.y - v.endY;
+                    v.endX = p.x; v.endY = p.y;
+                    if (mode === 'both') { v.startX += dx; v.startY += dy; }
+                    snapped = true;
+                }
+                if(snapped) break;
+            }
+        }
+
+        function getAllVectorPoints() {
+            let points = [];
+            const all = [...gameState.vectors];
+            if (gameState.resultVector) all.push(gameState.resultVector);
+            for (let v of all) { points.push({x: v.startX, y: v.startY}); points.push({x: v.endX, y: v.endY}); }
+            return points;
+        }
+
+        function dist(x1, y1, x2, y2) { return Math.hypot(x2-x1, y2-y1); }
+        function distToInfiniteLine(px, py, line) {
+            const sin = Math.sin(line.angle); const cos = Math.cos(line.angle);
+            return Math.abs( (px - line.x)*(-sin) + (py - line.y)*cos );
+        }
+        function getMousePos(evt) {
+            const rect = canvas.getBoundingClientRect();
+            return { x: evt.clientX - rect.left, y: evt.clientY - rect.top };
+        }
+        function hitTestLine(mx, my, v) {
+            const len = dist(v.startX, v.startY, v.endX, v.endY);
+            if (len === 0) return false;
+            const dot = ((mx - v.startX)*(v.endX - v.startX) + (my - v.startY)*(v.endY - v.startY)) / (len*len);
+            const onSegment = dot >= 0 && dot <= 1;
+            if (!onSegment) return false;
+            const cx = v.startX + (dot * (v.endX - v.startX));
+            const cy = v.startY + (dot * (v.endY - v.startY));
+            return dist(mx, my, cx, cy) < 8; 
+        }
+
+        // --- SCORING & VERIFICAÇÃO ---
+
+        function checkAnswer() {
+            if (!gameState.resultVector) { alert("Crie o Vetor Resultante primeiro!"); return; }
+
+            const r = gameState.resultVector;
+            const t = gameState.targetResult;
+            const curX = r.endX - r.startX;
+            const curY = r.endY - r.startY;
+
+            const diffMag = Math.abs(Math.hypot(curX, curY) - t.mag);
+            const ang1 = Math.atan2(curY, curX);
+            const ang2 = Math.atan2(t.y, t.x);
+            let diffAng = Math.abs(ang1 - ang2);
+            if (diffAng > Math.PI) diffAng = 2*Math.PI - diffAng;
+
+            const isCorrect = (diffMag < 10) && (diffAng < 0.2); 
+
+            if (isCorrect) {
+                gameState.correctCount++;
+                const elapsedSeconds = (Date.now() - gameState.questionStartTime) / 1000;
+                const penalty = Math.floor(elapsedSeconds * 5);
+                const pointsEarned = Math.max(0, 1000 - penalty);
+                
+                gameState.accumulatedScore += pointsEarned;
+                document.getElementById('score-display').textContent = `${gameState.accumulatedScore} pts`;
+
+                showFeedback(`Correto! +${pointsEarned} pontos`, true);
+            } else {
+                showFeedback("Incorreto", false);
+            }
+        }
+
+        function showFeedback(msg, isCorrect) {
+            const popup = document.getElementById('feedback-popup');
+            const title = document.getElementById('fb-title');
+            const txt = document.getElementById('fb-msg');
+            
+            gameState.isPaused = true;
+            popup.className = `feedback-popup ${isCorrect ? 'correct' : 'incorrect'}`;
+            title.textContent = isCorrect ? "Excelente!" : "Ops!";
+            txt.textContent = msg;
+            popup.style.display = 'block';
+
+            setTimeout(() => {
+                popup.style.display = 'none';
+                gameState.isPaused = false;
+                if (isCorrect) nextQuestion();
+            }, 1500);
+        }
+
+        function endGame() {
+            clearInterval(gameState.timerInterval);
+            document.getElementById('game-screen').style.display = 'none';
+            document.getElementById('result-screen').style.display = 'flex';
+            document.getElementById('ingame-help-btn').style.display = 'none';
+            
+            const totalElapsed = Math.floor((Date.now() - gameState.startTime) / 1000);
+            const m = String(Math.floor(totalElapsed/60)).padStart(2,'0');
+            const s = String(totalElapsed%60).padStart(2,'0');
+            
+            document.getElementById('final-score-display').textContent = `${gameState.accumulatedScore} pts`;
+            document.getElementById('result-details').textContent = 
+                `Acertos: ${gameState.correctCount}/${gameConfig[gameState.level].questions} | Tempo Total: ${m}:${s}`;
+        }
+
+        function startTimer() {
+            if (gameState.timerInterval) clearInterval(gameState.timerInterval);
+            gameState.timerInterval = setInterval(() => {
+                if (gameState.isPaused) return;
+                const totalElapsed = Math.floor((Date.now() - gameState.startTime) / 1000);
+                const m = String(Math.floor(totalElapsed/60)).padStart(2,'0');
+                const s = String(totalElapsed%60).padStart(2,'0');
+                document.getElementById('timer-display').textContent = `${m}:${s}`;
+            }, 1000);
+        }
+
+        // --- RENDERIZAÇÃO ---
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // Grid
+            ctx.strokeStyle = "rgba(255,255,255,0.05)"; ctx.lineWidth = 1;
+            for(let x=40; x<canvas.width; x+=40) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke(); }
+            for(let y=40; y<canvas.height; y+=40) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke(); }
+            
+            // Linhas
+            ctx.lineWidth = 2;
+            gameState.helperLines.forEach(l => {
+                const len = 3000; const dx = Math.cos(l.angle) * len; const dy = Math.sin(l.angle) * len;
+                ctx.strokeStyle = (gameState.selectedVector === l) ? "#fff" : l.color;
+                ctx.setLineDash([8, 8]); 
+                ctx.beginPath(); ctx.moveTo(l.x - dx, l.y - dy); ctx.lineTo(l.x + dx, l.y + dy); ctx.stroke();
+                ctx.fillStyle = ctx.strokeStyle; ctx.beginPath(); ctx.arc(l.x, l.y, 3, 0, Math.PI*2); ctx.fill();
+            });
+            ctx.setLineDash([]); 
+
+            // Vetores
+            gameState.vectors.forEach(v => drawVector(v));
+            if (gameState.resultVector) drawVector(gameState.resultVector, true);
+        }
+
+        function drawVector(v, isResult = false) {
+            const isSel = (gameState.selectedVector === v);
+            if (isSel) {
+                ctx.strokeStyle = "rgba(255,255,255,0.4)"; ctx.lineWidth = 10; ctx.lineCap = 'round';
+                ctx.beginPath(); ctx.moveTo(v.startX, v.startY); ctx.lineTo(v.endX, v.endY); ctx.stroke();
+            }
+            const color = isResult ? '#ef4444' : v.color;
+            ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = isResult ? 4 : 3;
+            ctx.beginPath(); ctx.moveTo(v.startX, v.startY); ctx.lineTo(v.endX, v.endY); ctx.stroke();
+
+            const ang = Math.atan2(v.endY - v.startY, v.endX - v.startX);
+            const head = 12;
+            ctx.beginPath();
+            ctx.moveTo(v.endX, v.endY);
+            ctx.lineTo(v.endX - head * Math.cos(ang - Math.PI/6), v.endY - head * Math.sin(ang - Math.PI/6));
+            ctx.lineTo(v.endX - head * Math.cos(ang + Math.PI/6), v.endY - head * Math.sin(ang + Math.PI/6));
+            ctx.fill();
+
+            ctx.fillStyle = "#fff"; ctx.font = "bold 14px Arial";
+            ctx.fillText(v.label, (v.startX+v.endX)/2 + 5, (v.startY+v.endY)/2 - 5);
+            ctx.beginPath(); ctx.arc(v.startX, v.startY, 3, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(v.endX, v.endY, 3, 0, Math.PI*2); ctx.fill();
+        }
+
+        // --- SYSTEM UTILS ---
+        function reverseSelected() {
+            const obj = gameState.selectedVector;
+            if (!obj || obj.angle !== undefined) return;
+            const tx = obj.startX; const ty = obj.startY;
+            obj.startX = obj.endX; obj.startY = obj.endY;
+            obj.endX = tx; obj.endY = ty;
+            obj.valX *= -1; obj.valY *= -1;
+            if(obj === gameState.resultVector) updateResultantMonitor();
+            draw();
+        }
+
+        function resetPositions() {
+            const centerX = canvas.width / 2; const centerY = canvas.height / 2;
+            gameState.vectors.forEach((v, i) => {
+                // Recuperar as posições iniciais calculadas ou simplesmente alinhar no centro
+                const ox = centerX + (i*20) - 40; const oy = centerY + (i*20) - 40;
+                v.startX = ox; v.startY = oy; v.endX = ox + v.valX; v.endY = oy + v.valY;
+            });
+            if(gameState.resultVector) {
+                gameState.resultVector.startX = centerX; gameState.resultVector.startY = centerY + 100;
+                gameState.resultVector.endX = centerX + 60; gameState.resultVector.endY = centerY + 100;
+                updateResultantMonitor();
+            }
+            draw();
+        }
+
+        // MODIFICADO: Lógica de atualização da UI para controlar o botão de apagar
+        function updateSelectionUI() {
+            const info = document.getElementById('selected-vector-info');
+            const deleteLineBtn = document.getElementById('btn-delete-single-line');
+            
+            // Reseta estado do botão
+            deleteLineBtn.classList.add('disabled');
+
+            if (gameState.selectedVector) {
+                if(gameState.selectedVector.angle !== undefined) { 
+                    info.textContent = `Selecionado: Linha Guia`; 
+                    info.style.color = "#fff"; 
+                    
+                    // ATIVA o botão se for uma linha
+                    deleteLineBtn.classList.remove('disabled');
+                }
+                else { 
+                    info.textContent = `Selecionado: Vetor ${gameState.selectedVector.label}`; 
+                    info.style.color = gameState.selectedVector.color; 
+                }
+            } else { 
+                info.textContent = "Nenhum objeto selecionado"; 
+                info.style.color = "#a0a0c0"; 
+            }
+        }
+
+        // --- RANKING (LOCALSTORAGE) ---
+        function loadRanking() {
+            const data = localStorage.getItem('vectorMindRankScore');
+            if (data) rankingData = JSON.parse(data);
+        }
+
+        function saveScoreAndExit() {
+            const name = document.getElementById('player-name').value.trim() || "Anônimo";
+            const totalElapsed = Math.floor((Date.now() - gameState.startTime) / 1000);
+            
+            const record = { name: name, time: totalElapsed, score: gameState.accumulatedScore };
+
+            rankingData[gameState.level].push(record);
+            rankingData[gameState.level].sort((a, b) => b.score - a.score);
+            rankingData[gameState.level] = rankingData[gameState.level].slice(0, 10);
+            
+            localStorage.setItem('vectorMindRankScore', JSON.stringify(rankingData));
+            
+            backToMenu();
+            setTimeout(() => showRanking(gameState.level), 300);
+        }
+
+        function showRanking(defaultLevel = 'easy') {
+            document.getElementById('ranking-modal').style.display = 'flex';
+            renderRanking(defaultLevel);
+        }
+
+        function renderRanking(level) {
+            const list = document.getElementById('ranking-list');
+            const data = rankingData[level];
+            let html = `<h3 style="margin-bottom:10px; color:#fff;">Nível: ${getLevelName(level)}</h3>`;
+            
+            if (data.length === 0) {
+                html += '<p style="text-align:center; color:#777; margin-top:20px;">Ranking Vazio</p>';
+            } else {
+                html += `<table class="ranking-table"><tr><th>Pos</th><th>Nome</th><th>Tempo</th><th>Score</th></tr>`;
+                data.forEach((r, i) => {
+                    let medal = i===0 ? "🥇" : (i===1 ? "🥈" : (i===2 ? "🥉" : ""));
+                    const m = String(Math.floor(r.time/60)).padStart(2,'0');
+                    const s = String(r.time%60).padStart(2,'0');
+                    const cls = i <= 2 ? `rank-${i+1}` : '';
+
+                    html += `<tr class="${cls}">
+                        <td>${medal} #${i+1}</td>
+                        <td>${r.name}</td>
+                        <td>${m}:${s}</td>
+                        <td>${r.score}</td>
+                    </tr>`;
+                });
+                html += `</table>`;
+            }
+            list.innerHTML = html;
+        }
+
+        function backToMenu() {
+            document.getElementById('game-screen').style.display = 'none';
+            document.getElementById('result-screen').style.display = 'none';
+            document.getElementById('ingame-help-btn').style.display = 'none';
+            document.getElementById('start-screen').style.display = 'flex';
+            clearInterval(gameState.timerInterval);
+        }
+        
+        function restartGame() { startGame(gameState.level); }
+        function showTutorial() { document.getElementById('tutorial-modal').style.display = 'flex'; }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+        function getLevelName(l) { return {easy:'Fácil', medium:'Médio', hard:'Difícil'}[l]; }
+
+    </script>
+</body>
+</html>
